@@ -1,20 +1,25 @@
 # Sprawdzacz rozprawek
 
-Aplikacja w przeglądarce dla nauczycieli języka polskiego. Sprawdza rozprawki uczniów (wklejony tekst, zdjęcia stron, skany, PDF) według wybranych kryteriów. Pokazuje:
+Aplikacja w przeglądarce dla nauczycieli języka polskiego. AI przejmuje część **merytoryczną** sprawdzania rozprawki, a nauczyciel sam sprawdza język, ortografię, interpunkcję i styl.
 
-- punkty za każde kryterium wraz z uzasadnieniem, sumę i proponowaną ocenę,
-- listę błędów (ortografia, interpunkcja, język, styl, błędy rzeczowe…) z poprawkami,
-- tekst pracy z zaznaczonymi błędami,
-- mocne strony, elementy do poprawy i gotowy komentarz dla ucznia.
+AI:
+- **odczytuje pracę ze zdjęć** (także pismo odręczne), skanów lub PDF i pokazuje transkrypcję do porównania z oryginałem;
+- ocenia **argumenty i przykłady**: czy są funkcjonalne, częściowo funkcjonalne czy niefunkcjonalne, skąd pochodzą i czy nie ma w nich błędów rzeczowych;
+- ocenia **konteksty** (historyczny, biograficzny, filozoficzny…) i ich funkcjonalność;
+- przyznaje punkty w kryteriach merytorycznych (realizacja tematu, elementy retoryczne, kompetencje literackie, kompozycja);
+- pisze **komentarz dla ucznia**, który można edytować i skopiować.
 
-Nauczyciel może ręcznie poprawić każdy wynik. Historia prac zapisuje się w przeglądarce i można ją wyeksportować do pliku CSV (Excel).
+Nauczyciel wpisuje punkty za styl, język, ortografię i interpunkcję. Suma i ocena przeliczają się automatycznie. Podział między AI a nauczyciela można zmienić w Ustawieniach (przełącznik „ocenia AI” przy każdym kryterium).
+
+Historia prac zapisuje się w przeglądarce i można ją wyeksportować do pliku CSV (Excel).
 
 ## Uruchomienie
 
 1. Załóż konto na <https://console.anthropic.com>, doładuj je (Billing) i utwórz klucz w **API Keys**.
 2. Otwórz `index.html` w przeglądarce (Chrome, Edge, Firefox), albo opublikuj repozytorium przez **GitHub Pages**: Settings → Pages → Deploy from branch.
 3. W zakładce **Ustawienia** wklej klucz API i kliknij **Zapisz**.
-4. W zakładce **Sprawdź** wpisz temat, wklej pracę albo dodaj zdjęcia i kliknij **Sprawdź rozprawkę**.
+4. W zakładce **Sprawdź** wpisz temat, dodaj zdjęcia kolejnych stron (w kolejności) i kliknij **Sprawdź rozprawkę**. Na telefonie można od razu zrobić zdjęcie.
+5. Porównaj transkrypcję z oryginałem, uzupełnij punkty za kryteria językowe i w razie potrzeby popraw komentarz.
 
 ## Struktura
 

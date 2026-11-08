@@ -59,19 +59,19 @@
         <fieldset class="field">
           <legend>Tekst ucznia</legend>
           <div class="segmented" role="radiogroup" aria-label="Sposób dodania pracy">
-            <label><input type="radio" name="input-mode" value="text" checked> Wklej tekst</label>
-            <label><input type="radio" name="input-mode" value="file"> Zdjęcie / skan / PDF</label>
+            <label><input type="radio" name="input-mode" value="file" checked> Zdjęcia / skan / PDF</label>
+            <label><input type="radio" name="input-mode" value="text"> Wklej tekst</label>
           </div>
 
-          <div id="mode-text">
+          <div id="mode-text" hidden>
             <textarea id="essay-text" rows="14" placeholder="Wklej tutaj treść rozprawki…"></textarea>
             <p class="hint">Liczba słów: <strong id="word-count">0</strong></p>
           </div>
 
-          <div id="mode-file" hidden>
+          <div id="mode-file">
             <label class="dropzone" id="dropzone">
               <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain" multiple>
-              <span><strong>Kliknij lub upuść pliki</strong><br>Zdjęcia kolejnych stron (JPG/PNG), PDF lub TXT. Pismo odręczne też zadziała, jeśli jest czytelne.</span>
+              <span><strong>Kliknij, zrób zdjęcie lub upuść pliki</strong><br>Zdjęcia kolejnych stron pracy (w kolejności), PDF lub TXT. Pismo odręczne – zdjęcie z góry, przy dobrym świetle.</span>
             </label>
             <ul id="file-list" class="file-list"></ul>
           </div>
@@ -79,7 +79,7 @@
 
         <label class="field">
           <span>Dodatkowe wskazówki dla sprawdzającego (opcjonalnie)</span>
-          <textarea id="extra" rows="2" placeholder="np. uczeń z dysleksją – nie obniżaj punktów za ortografię; zwróć uwagę na akapity"></textarea>
+          <textarea id="extra" rows="2" placeholder="np. zwróć szczególną uwagę na kontekst historyczny; uczeń ma opinię z poradni"></textarea>
         </label>
 
         <div class="actions">
@@ -91,7 +91,7 @@
 
       <div id="loading" class="card loading" hidden aria-live="polite">
         <div class="spinner" aria-hidden="true"></div>
-        <p>Sprawdzam pracę… zwykle trwa to 30–90 sekund.</p>
+        <p>Odczytuję i analizuję pracę… zwykle trwa to 30–120 sekund.</p>
       </div>
 
       <div id="result" aria-live="polite"></div>
@@ -145,7 +145,7 @@
         <div class="grades" id="grade-thresholds"></div>
 
         <h3>Kryteria oceniania</h3>
-        <p class="hint">Możesz zmieniać nazwy, punkty i opisy. Zmiany w zestawie wbudowanym zapisują się jako Twoja wersja.</p>
+        <p class="hint">Możesz zmieniać nazwy, punkty i opisy. Kryteria z odznaczonym „ocenia AI” (domyślnie: styl, język, ortografia, interpunkcja) uzupełniasz sama po sprawdzeniu pracy.</p>
         <div class="grid-2">
           <label class="field">
             <span>Zestaw do edycji</span>

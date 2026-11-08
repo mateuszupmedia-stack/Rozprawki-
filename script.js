@@ -14,11 +14,11 @@ const STORAGE_HISTORY = 'rozprawki.history.v1';
 const MAX_IMAGE_SIDE = 2000;           // px – dłuższy bok zdjęcia po zmniejszeniu
 const MAX_FILES = 10;
 
-const ERROR_TYPES = ['ortografia', 'interpunkcja', 'jezyk', 'styl', 'rzeczowy', 'kompozycja', 'logika'];
-const ERROR_LABELS = {
-  ortografia: 'ortografia', interpunkcja: 'interpunkcja', jezyk: 'język',
-  styl: 'styl', rzeczowy: 'błąd rzeczowy', kompozycja: 'kompozycja', logika: 'logika',
-};
+/* Ocena funkcjonalności przykładów i kontekstów */
+const FUNC_VALUES = ['funkcjonalny', 'częściowo funkcjonalny', 'niefunkcjonalny'];
+const FUNC_CLASS = { 'funkcjonalny': 'good', 'częściowo funkcjonalny': 'mid', 'niefunkcjonalny': 'bad' };
+const SOURCE_TYPES = ['lektura obowiązkowa', 'inny tekst kultury', 'wydarzenie historyczne', 'przykład z życia', 'brak przykładu'];
+const CONTEXT_TYPES = ['historyczny', 'historycznoliteracki', 'biograficzny', 'filozoficzny', 'kulturowy', 'społeczny', 'religijny', 'biblijny', 'mitologiczny', 'egzystencjalny', 'inny'];
 
 /* Wbudowane zestawy kryteriów. Nauczyciel może je edytować w Ustawieniach. */
 const DEFAULT_PRESETS = {
@@ -28,29 +28,28 @@ const DEFAULT_PRESETS = {
       'Praca powinna mieć co najmniej 200 słów. Jeśli ma mniej niż 200 słów, oceniaj wyłącznie realizację tematu, ' +
       'elementy retoryczne i kompetencje literackie, a pozostałe kryteria oceń na 0 pkt. ' +
       'Jeśli praca nie jest rozprawką lub jest całkowicie niezgodna z tematem, wszystkie kryteria = 0 pkt. ' +
-      'Uczeń musi odwołać się do lektury obowiązkowej (jeśli temat tego wymaga) i ewentualnie innego tekstu kultury. ' +
-      'Kryteria ortografii, interpunkcji i języka: przy pracy krótszej niż 250 słów stosuj progi błędów proporcjonalnie surowiej.',
+      'Uczeń musi odwołać się do lektury obowiązkowej (jeśli temat tego wymaga) i ewentualnie innego tekstu kultury.',
     criteria: [
-      { id: 'c1', name: 'I. Realizacja tematu wypowiedzi', max: 2, desc: 'Forma rozprawki zachowana, wypowiedź w całości dotyczy problemu z tematu.' },
-      { id: 'c2', name: 'II. Elementy retoryczne', max: 5, desc: 'Teza/stanowisko, argumenty pogłębione i rozwinięte, przykłady, logiczne wnioskowanie, podsumowanie. 5 pkt – pogłębiona argumentacja; 3 pkt – powierzchowna; 1 pkt – próba argumentowania.' },
-      { id: 'c3', name: 'III. Kompetencje literackie i kulturowe', max: 2, desc: 'Funkcjonalne wykorzystanie znajomości lektury obowiązkowej i innego tekstu kultury, bez błędów rzeczowych.' },
-      { id: 'c4', name: 'IV. Kompozycja tekstu', max: 2, desc: 'Kompozycja zgodna z formą, spójna i logiczna, właściwy podział na akapity.' },
-      { id: 'c5', name: 'V. Styl', max: 2, desc: 'Styl odpowiedni do treści i formy, jednolity.' },
-      { id: 'c6', name: 'VI. Język', max: 4, desc: 'Szeroki zakres środków językowych. Błędy językowe (składniowe, fleksyjne, leksykalne, frazeologiczne): 0–1 błąd = 4 pkt, 2–3 = 3 pkt, 4 = 2 pkt, 5–6 = 1 pkt (przy szerokim zakresie środków), więcej = 0 pkt.' },
-      { id: 'c7', name: 'VII. Ortografia', max: 2, desc: '0–1 błąd = 2 pkt, 2–3 błędy = 1 pkt, 4 i więcej = 0 pkt.' },
-      { id: 'c8', name: 'VIII. Interpunkcja', max: 1, desc: '0–5 błędów = 1 pkt, 6 i więcej = 0 pkt.' },
+      { id: 'c1', name: 'I. Realizacja tematu wypowiedzi', max: 2, desc: 'Forma rozprawki zachowana, wypowiedź w całości dotyczy problemu z tematu.', ai: true },
+      { id: 'c2', name: 'II. Elementy retoryczne', max: 5, desc: 'Teza/stanowisko, argumenty pogłębione i rozwinięte, przykłady, logiczne wnioskowanie, podsumowanie. 5 pkt – pogłębiona argumentacja; 3 pkt – powierzchowna; 1 pkt – próba argumentowania.', ai: true },
+      { id: 'c3', name: 'III. Kompetencje literackie i kulturowe', max: 2, desc: 'Funkcjonalne wykorzystanie znajomości lektury obowiązkowej i innego tekstu kultury, bez błędów rzeczowych.', ai: true },
+      { id: 'c4', name: 'IV. Kompozycja tekstu', max: 2, desc: 'Kompozycja zgodna z formą, spójna i logiczna, właściwy podział na akapity.', ai: true },
+      { id: 'c5', name: 'V. Styl', max: 2, desc: 'Styl odpowiedni do treści i formy, jednolity.', ai: false },
+      { id: 'c6', name: 'VI. Język', max: 4, desc: 'Szeroki zakres środków językowych. Błędy językowe (składniowe, fleksyjne, leksykalne, frazeologiczne): 0–1 błąd = 4 pkt, 2–3 = 3 pkt, 4 = 2 pkt, 5–6 = 1 pkt (przy szerokim zakresie środków), więcej = 0 pkt.', ai: false },
+      { id: 'c7', name: 'VII. Ortografia', max: 2, desc: '0–1 błąd = 2 pkt, 2–3 błędy = 1 pkt, 4 i więcej = 0 pkt.', ai: false },
+      { id: 'c8', name: 'VIII. Interpunkcja', max: 1, desc: '0–5 błędów = 1 pkt, 6 i więcej = 0 pkt.', ai: false },
     ],
   },
   school: {
     name: 'Szkolna – uproszczona (20 pkt)',
     rules: 'Ocena bieżąca w klasie. Bądź wymagający, ale życzliwy. Oceniaj adekwatnie do poziomu klasy.',
     criteria: [
-      { id: 's1', name: 'Teza / stanowisko', max: 2, desc: 'Jasno sformułowana teza lub hipoteza zgodna z tematem.' },
-      { id: 's2', name: 'Argumentacja', max: 6, desc: 'Co najmniej 2–3 trafne, rozwinięte argumenty, logicznie uporządkowane.' },
-      { id: 's3', name: 'Przykłady z lektur i tekstów kultury', max: 4, desc: 'Trafne, poprawne rzeczowo przykłady, powiązane z argumentami.' },
-      { id: 's4', name: 'Kompozycja', max: 3, desc: 'Wstęp, rozwinięcie, zakończenie; akapity; spójność.' },
-      { id: 's5', name: 'Język i styl', max: 3, desc: 'Poprawność językowa, bogate słownictwo, styl odpowiedni do formy.' },
-      { id: 's6', name: 'Ortografia i interpunkcja', max: 2, desc: 'Do 2 błędów = 2 pkt, 3–5 = 1 pkt, więcej = 0 pkt.' },
+      { id: 's1', name: 'Teza / stanowisko', max: 2, desc: 'Jasno sformułowana teza lub hipoteza zgodna z tematem.', ai: true },
+      { id: 's2', name: 'Argumentacja', max: 6, desc: 'Co najmniej 2–3 trafne, rozwinięte argumenty, logicznie uporządkowane.', ai: true },
+      { id: 's3', name: 'Przykłady z lektur i tekstów kultury', max: 4, desc: 'Trafne, poprawne rzeczowo przykłady, powiązane z argumentami.', ai: true },
+      { id: 's4', name: 'Kompozycja', max: 3, desc: 'Wstęp, rozwinięcie, zakończenie; akapity; spójność.', ai: true },
+      { id: 's5', name: 'Język i styl', max: 3, desc: 'Poprawność językowa, bogate słownictwo, styl odpowiedni do formy.', ai: false },
+      { id: 's6', name: 'Ortografia i interpunkcja', max: 2, desc: 'Do 2 błędów = 2 pkt, 3–5 = 1 pkt, więcej = 0 pkt.', ai: false },
     ],
   },
 };
@@ -142,7 +141,9 @@ dropzone.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
 $('#file-input').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
 
 async function addFiles(fileList) {
-  for (const file of fileList) {
+  // Kopia listy – FileList jest "żywy" i znika po wyczyszczeniu pola wyboru plików.
+  const files = Array.from(fileList);
+  for (const file of files) {
     if (attachedFiles.length >= MAX_FILES) { showFormError(`Maksymalnie ${MAX_FILES} plików na jedną pracę.`); break; }
     try {
       if (file.type === 'text/plain') {
@@ -282,18 +283,57 @@ function setLoading(on) {
   if (on) { $('#result').innerHTML = ''; $('#loading').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 
+/** Kryteria oceniane przez AI (pozostałe uzupełnia nauczyciel). */
+const aiCriteria = (preset) => preset.criteria.filter((c) => c.ai !== false);
+const teacherCriteria = (preset) => preset.criteria.filter((c) => c.ai === false);
+
 /** Schemat JSON odpowiedzi – wymusza uporządkowany wynik (structured outputs). */
 function buildSchema(preset) {
   const str = { type: 'string' };
+  const funcField = { type: 'string', enum: FUNC_VALUES };
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['transcription', 'word_count', 'thesis', 'summary', 'criteria', 'errors', 'strengths', 'improvements', 'feedback_for_student', 'teacher_notes'],
+    required: ['transcription', 'word_count', 'thesis', 'summary', 'reading_check', 'arguments', 'contexts', 'criteria', 'strengths', 'improvements', 'feedback_for_student', 'teacher_notes'],
     properties: {
-      transcription: { type: 'string', description: 'Dokładna transkrypcja pracy, jeśli przesłano zdjęcie/PDF (z zachowaniem błędów ucznia i akapitów). Pusty string, jeśli przesłano tekst.' },
+      transcription: { type: 'string', description: 'Dokładna transkrypcja pracy ze zdjęć/PDF, znak w znak, z zachowaniem pisowni ucznia i podziału na akapity (pusta linia między akapitami). Pusty string, jeśli praca została wklejona jako tekst.' },
       word_count: { type: 'integer', description: 'Liczba słów w pracy.' },
-      thesis: { type: 'string', description: 'Teza/stanowisko ucznia własnymi słowami; "brak tezy", jeśli jej nie ma.' },
-      summary: { type: 'string', description: 'Ogólna ocena pracy w 2–4 zdaniach dla nauczyciela.' },
+      thesis: { type: 'string', description: 'Teza/stanowisko ucznia; "brak tezy", jeśli jej nie ma.' },
+      summary: { type: 'string', description: 'Ogólna ocena merytoryczna pracy w 2–4 zdaniach dla nauczyciela.' },
+      reading_check: { type: 'string', description: 'Czy uczeń odwołał się do wymaganej lektury/tekstów, czy poprawnie rzeczowo i czy funkcjonalnie (1–3 zdania).' },
+      arguments: {
+        type: 'array',
+        description: 'Każdy argument z pracy po kolei, z przykładem, który go ilustruje.',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['argument', 'example', 'source', 'source_type', 'functionality', 'factual_errors', 'comment'],
+          properties: {
+            argument: { type: 'string', description: 'Argument własnymi słowami, krótko.' },
+            example: { type: 'string', description: 'Przykład użyty przez ucznia (np. postać, sytuacja z lektury).' },
+            source: { type: 'string', description: 'Tytuł i autor tekstu/źródła przykładu; pusty, jeśli brak.' },
+            source_type: { type: 'string', enum: SOURCE_TYPES },
+            functionality: funcField,
+            factual_errors: { type: 'string', description: 'Błędy rzeczowe w przykładzie (np. pomylone postacie, wydarzenia). Pusty string, jeśli brak.' },
+            comment: { type: 'string', description: 'Dlaczego przykład jest/nie jest funkcjonalny: czy uczeń go zinterpretował i powiązał z tezą, czy tylko streścił.' },
+          },
+        },
+      },
+      contexts: {
+        type: 'array',
+        description: 'Konteksty wykorzystane przez ucznia. Pusta tablica, jeśli brak.',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['type', 'content', 'functionality', 'comment'],
+          properties: {
+            type: { type: 'string', enum: CONTEXT_TYPES },
+            content: { type: 'string', description: 'Na czym polega kontekst w pracy.' },
+            functionality: funcField,
+            comment: str,
+          },
+        },
+      },
       criteria: {
         type: 'array',
         items: {
@@ -301,62 +341,48 @@ function buildSchema(preset) {
           additionalProperties: false,
           required: ['id', 'points', 'justification'],
           properties: {
-            id: { type: 'string', enum: preset.criteria.map((c) => c.id) },
+            id: aiCriteria(preset).length ? { type: 'string', enum: aiCriteria(preset).map((c) => c.id) } : str,
             points: { type: 'integer' },
             justification: str,
           },
         },
       },
-      errors: {
-        type: 'array',
-        items: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['type', 'quote', 'correction', 'explanation'],
-          properties: {
-            type: { type: 'string', enum: ERROR_TYPES },
-            quote: { type: 'string', description: 'Fragment DOKŁADNIE skopiowany z pracy (kilka słów), zawierający błąd.' },
-            correction: { type: 'string', description: 'Poprawiona wersja fragmentu.' },
-            explanation: { type: 'string', description: 'Krótkie wyjaśnienie zasady.' },
-          },
-        },
-      },
       strengths: { type: 'array', items: str },
       improvements: { type: 'array', items: str },
-      feedback_for_student: { type: 'string', description: 'Komentarz do ucznia: życzliwy, konkretny, 4–8 zdań, w 2. osobie.' },
-      teacher_notes: { type: 'string', description: 'Uwagi/wątpliwości dla nauczyciela (np. nieczytelne fragmenty, sporne punkty). Pusty string, jeśli brak.' },
+      feedback_for_student: { type: 'string', description: 'Komentarz do ucznia: życzliwy, konkretny, 4–8 zdań, w 2. osobie. Dotyczy treści: tezy, argumentów, przykładów, kontekstów i kompozycji.' },
+      teacher_notes: { type: 'string', description: 'Uwagi dla nauczyciela: nieczytelne fragmenty, niepewny odczyt, sporne punkty. Pusty string, jeśli brak.' },
     },
   };
 }
 
 function buildSystemPrompt() {
   return [
-    'Jesteś doświadczonym egzaminatorem i nauczycielem języka polskiego. Sprawdzasz rozprawki uczniów polskiej szkoły rzetelnie, sprawiedliwie i zgodnie z podanymi kryteriami.',
-    'Zasady:',
-    '- Oceniaj wyłącznie według podanych kryteriów i zasad zestawu. Dla każdego kryterium podaj liczbę punktów (liczba całkowita od 0 do maksimum) i konkretne uzasadnienie odwołujące się do treści pracy.',
-    '- Licz błędy starannie i wypisz każdy błąd ortograficzny, interpunkcyjny i językowy osobno. Pole "quote" musi być dosłownym fragmentem pracy (kopiuj znak w znak, łącznie z błędem), aby nauczyciel mógł go odnaleźć.',
-    '- Nie wymyślaj błędów. Jeśli coś jest dopuszczalne według normy wzorcowej lub użytkowej, nie zaznaczaj tego jako błąd.',
-    '- Sprawdź poprawność rzeczową odwołań do lektur (bohaterowie, wydarzenia). Błędy rzeczowe oznacz typem "rzeczowy".',
-    '- Jeśli praca jest na zdjęciu lub w PDF, najpierw dokładnie ją przepisz (pole "transcription"), zachowując oryginalną pisownię ucznia. Fragmenty nieczytelne oznacz jako [nieczytelne] i wspomnij o nich w "teacher_notes"; nie licz ich jako błędów.',
-    '- Komentarz dla ucznia pisz życzliwie i konkretnie: co wyszło dobrze, co poprawić i jak.',
-    '- Wszystkie odpowiedzi pisz po polsku.',
+    'Jesteś doświadczonym egzaminatorem i nauczycielem języka polskiego. Pomagasz nauczycielce sprawdzać rozprawki uczniów polskiej szkoły. Ona sama sprawdza poprawność językową, ortografię, interpunkcję i styl – Ty zajmujesz się treścią.',
+    'Twoje zadania:',
+    '1. Odczytanie pracy. Jeśli praca jest na zdjęciach lub w PDF, przepisz ją dokładnie, strona po stronie, zachowując oryginalną pisownię i interpunkcję ucznia (nie poprawiaj błędów). Fragmenty, których nie da się odczytać, zapisz jako [nieczytelne] lub [słowo?], gdy nie masz pewności, i wspomnij o nich w "teacher_notes". Pomiń skreślenia.',
+    '2. Analiza argumentów i przykładów. Dla każdego argumentu oceń przykład: "funkcjonalny" – uczeń przywołuje konkretną sytuację/postać, interpretuje ją i jasno wiąże z tezą; "częściowo funkcjonalny" – przykład trafny, ale głównie streszczony albo słabo powiązany z tezą; "niefunkcjonalny" – przykład niezwiązany z tezą, ogólnikowy, błędny rzeczowo lub sama wzmianka. Sprawdź poprawność rzeczową odwołań do lektur (postacie, wydarzenia, autorzy).',
+    '3. Konteksty. Wskaż konteksty (np. historyczny, biograficzny, filozoficzny, kulturowy) i oceń, czy są funkcjonalne, czyli czy pogłębiają argumentację, a nie są tylko ozdobnikiem.',
+    '4. Punktacja wyłącznie podanych kryteriów merytorycznych – liczba całkowita od 0 do maksimum, z uzasadnieniem odwołującym się do treści pracy.',
+    '5. Komentarz dla ucznia: życzliwy i konkretny – co wyszło dobrze, które przykłady/konteksty warto pogłębić i jak.',
+    'Nie oceniaj i nie wypisuj błędów językowych, ortograficznych, interpunkcyjnych ani stylistycznych – nie wspominaj o nich również w komentarzu dla ucznia, bo zrobi to nauczycielka.',
+    'Wszystkie odpowiedzi pisz po polsku.',
   ].join('\n');
 }
 
 function buildUserText(input, preset) {
-  const criteriaText = preset.criteria
+  const criteriaText = aiCriteria(preset)
     .map((c) => `- [${c.id}] ${c.name} (0–${c.max} pkt): ${c.desc}`)
     .join('\n');
   return [
     `TEMAT ROZPRAWKI:\n${input.topic}`,
     input.readings ? `WYMAGANE LEKTURY / TEKSTY:\n${input.readings}` : '',
     input.className ? `KLASA: ${input.className}` : '',
-    `ZESTAW KRYTERIÓW: ${preset.name}\nZasady ogólne: ${preset.rules || 'brak'}\nKryteria:\n${criteriaText}`,
-    input.extra ? `DODATKOWE WSKAZÓWKI NAUCZYCIELA:\n${input.extra}` : '',
+    `ZESTAW KRYTERIÓW: ${preset.name}\nZasady ogólne: ${preset.rules || 'brak'}\nKryteria do oceny przez Ciebie:\n${criteriaText}`,
+    input.extra ? `DODATKOWE WSKAZÓWKI NAUCZYCIELKI:\n${input.extra}` : '',
     input.text
       ? `PRACA UCZNIA (liczba słów policzona automatycznie: ${countWords(input.text)}):\n"""\n${input.text}\n"""`
-      : `PRACA UCZNIA znajduje się w załączonych plikach (${input.files.length} – kolejne strony w podanej kolejności). Najpierw ją przepisz, potem oceń.`,
-    'Oceń pracę i zwróć wynik w wymaganym formacie JSON. Uwzględnij każde kryterium dokładnie raz.',
+      : `PRACA UCZNIA znajduje się w załączonych plikach (${input.files.length} – kolejne strony w podanej kolejności). Najpierw ją dokładnie przepisz, potem oceń.`,
+    'Zwróć wynik w wymaganym formacie JSON. Uwzględnij każde z podanych kryteriów dokładnie raz.',
   ].filter(Boolean).join('\n\n');
 }
 
@@ -440,17 +466,18 @@ async function describeApiError(response) {
   return `${known[response.status] || `Błąd API (${response.status}).`}${detail ? ` Szczegóły: ${detail}` : ''}`;
 }
 
-/** Porządkuje wynik: kolejność kryteriów, zakres punktów, brakujące pola. */
+/** Porządkuje wynik: wszystkie kryteria w kolejności zestawu; kryteria nauczyciela puste (null). */
 function normalizeAssessment(data, preset) {
   const byId = new Map((data.criteria || []).map((c) => [c.id, c]));
   data.criteria = preset.criteria.map((def) => {
+    if (def.ai === false) return { id: def.id, points: null, justification: '', byTeacher: true };
     const got = byId.get(def.id) || { points: 0, justification: 'Model nie ocenił tego kryterium – uzupełnij ręcznie.' };
     const points = Math.max(0, Math.min(def.max, Math.round(Number(got.points) || 0)));
     return { id: def.id, points, justification: got.justification || '' };
   });
-  data.errors = Array.isArray(data.errors) ? data.errors : [];
-  data.strengths = Array.isArray(data.strengths) ? data.strengths : [];
-  data.improvements = Array.isArray(data.improvements) ? data.improvements : [];
+  for (const key of ['arguments', 'contexts', 'strengths', 'improvements']) {
+    data[key] = Array.isArray(data[key]) ? data[key] : [];
+  }
   return data;
 }
 
@@ -463,56 +490,42 @@ function gradeFor(percent) {
   return 1;
 }
 
+/** Suma punktów; "pending" = liczba kryteriów, których nauczyciel jeszcze nie uzupełnił. */
 function totals(record) {
   const max = record.criteriaDef.reduce((s, c) => s + Number(c.max), 0);
-  const got = record.assessment.criteria.reduce((s, c) => s + Number(c.points), 0);
+  const scored = record.assessment.criteria.filter((c) => c.points !== null && c.points !== undefined);
+  const got = scored.reduce((s, c) => s + Number(c.points), 0);
+  const pending = record.assessment.criteria.length - scored.length;
   const percent = max ? Math.round((got / max) * 100) : 0;
-  return { got, max, percent, grade: gradeFor(percent) };
+  return { got, max, percent, pending, grade: pending ? null : gradeFor(percent) };
 }
 
-/** Zaznacza w tekście fragmenty z błędami (<mark> z podpowiedzią). */
-function highlightEssay(text, errors) {
-  const ranges = [];
-  for (const err of errors) {
-    const quote = (err.quote || '').trim();
-    if (quote.length < 2) continue;
-    let from = 0, idx;
-    // Szukamy pierwszego wolnego (niezaznaczonego) wystąpienia; najpierw dokładnie, potem bez wielkości liter.
-    const haystack = text.includes(quote) ? text : text.toLowerCase();
-    const needle = haystack === text ? quote : quote.toLowerCase();
-    while ((idx = haystack.indexOf(needle, from)) !== -1) {
-      const end = idx + quote.length;
-      if (!ranges.some((r) => idx < r.end && end > r.start)) { ranges.push({ start: idx, end, err }); break; }
-      from = idx + 1;
-    }
-  }
-  ranges.sort((a, b) => a.start - b.start);
-  let html = '', pos = 0;
-  for (const r of ranges) {
-    html += escapeHTML(text.slice(pos, r.start));
-    const tip = `${ERROR_LABELS[r.err.type] || r.err.type}: ${r.err.correction} – ${r.err.explanation}`;
-    html += `<mark class="t-${escapeHTML(r.err.type)}" title="${escapeHTML(tip)}">${escapeHTML(text.slice(r.start, r.end))}</mark>`;
-    pos = r.end;
-  }
-  return html + escapeHTML(text.slice(pos));
+function gradeLabel(t) {
+  if (t.pending) return `Uzupełnij ${t.pending} ${t.pending === 1 ? 'kryterium' : 'kryteria'}, aby zobaczyć ocenę`;
+  return `${t.percent}% · ${t.grade} (${GRADE_NAMES[t.grade]})`;
 }
+
+const funcPill = (value) => `<span class="pill pill--${FUNC_CLASS[value] || 'mid'}">${escapeHTML(value)}</span>`;
+
+/** Tekst z akapitami (pusta linia = nowy akapit). */
+const paragraphs = (text) => text.split(/\n\s*\n/).map((p) => `<p>${escapeHTML(p.trim())}</p>`).join('');
 
 function renderResult(record) {
   currentResult = record;
   const a = record.assessment;
   const t = totals(record);
   const defs = new Map(record.criteriaDef.map((c) => [c.id, c]));
-  const errorCounts = ERROR_TYPES
-    .map((type) => [type, a.errors.filter((e) => e.type === type).length])
-    .filter(([, n]) => n > 0)
-    .map(([type, n]) => `<span class="pill pill--${type}">${ERROR_LABELS[type]}: ${n}</span>`).join(' ');
+  const args = a.arguments || [];
+  const contexts = a.contexts || [];
+  const funcCount = (list) => FUNC_VALUES.map((v) => [v, list.filter((x) => x.functionality === v).length])
+    .filter(([, n]) => n).map(([v, n]) => `${funcPill(v)} × ${n}`).join(' ');
 
   $('#result').innerHTML = `
     <div class="card">
       <div class="row-between">
         <div class="score">
           <div class="score__big"><span id="total-got">${t.got}</span> / ${t.max} pkt</div>
-          <div class="score__grade" id="total-grade">${t.percent}% · ${t.grade} (${GRADE_NAMES[t.grade]})</div>
+          <div class="score__grade" id="total-grade">${gradeLabel(t)}</div>
         </div>
         <div class="actions no-print">
           <button type="button" class="btn btn--ghost" id="copy-feedback">Kopiuj komentarz</button>
@@ -526,23 +539,61 @@ function renderResult(record) {
       <p><strong>Temat:</strong> ${escapeHTML(record.topic)}</p>
       <p><strong>Teza ucznia:</strong> ${escapeHTML(a.thesis)}</p>
       <p>${escapeHTML(a.summary)}</p>
+      ${a.reading_check ? `<p><strong>Lektura:</strong> ${escapeHTML(a.reading_check)}</p>` : ''}
       ${a.teacher_notes ? `<div class="notes"><strong>Uwagi dla nauczyciela:</strong> ${escapeHTML(a.teacher_notes)}</div>` : ''}
     </div>
 
     <div class="card">
+      <h2>Argumenty i przykłady (${args.length})</h2>
+      <p>${funcCount(args) || 'Nie znaleziono argumentów.'}</p>
+      <ol class="analysis-list">
+        ${args.map((x) => `<li>
+          <div class="row-between"><strong>${escapeHTML(x.argument)}</strong>${funcPill(x.functionality)}</div>
+          <p><span class="label">Przykład:</span> ${escapeHTML(x.example || '–')}
+            ${x.source ? `<span class="hint">(${escapeHTML(x.source)} · ${escapeHTML(x.source_type)})</span>` : `<span class="hint">(${escapeHTML(x.source_type || '')})</span>`}</p>
+          ${x.factual_errors ? `<p class="factual"><span class="label">Błąd rzeczowy:</span> ${escapeHTML(x.factual_errors)}</p>` : ''}
+          <p class="hint">${escapeHTML(x.comment)}</p>
+        </li>`).join('')}
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Konteksty (${contexts.length})</h2>
+      ${contexts.length ? `<p>${funcCount(contexts)}</p>
+      <ul class="analysis-list">
+        ${contexts.map((c) => `<li>
+          <div class="row-between"><strong>Kontekst ${escapeHTML(c.type)}</strong>${funcPill(c.functionality)}</div>
+          <p>${escapeHTML(c.content)}</p>
+          <p class="hint">${escapeHTML(c.comment)}</p>
+        </li>`).join('')}
+      </ul>` : '<p>Uczeń nie wykorzystał kontekstów.</p>'}
+    </div>
+
+    <div class="card">
+      <h2>Komentarz dla ucznia</h2>
+      <div class="feedback" id="feedback-text" contenteditable="true" spellcheck="true" aria-label="Komentarz dla ucznia – możesz go edytować">${escapeHTML(a.feedback_for_student)}</div>
+      <p class="hint no-print">Komentarz możesz edytować – kliknij w tekst i dopisz np. uwagi o języku.</p>
+      <div class="cols">
+        <div><h3>Mocne strony</h3><ul>${a.strengths.map((s) => `<li>${escapeHTML(s)}</li>`).join('') || '<li>–</li>'}</ul></div>
+        <div><h3>Do poprawy</h3><ul>${a.improvements.map((s) => `<li>${escapeHTML(s)}</li>`).join('') || '<li>–</li>'}</ul></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Punktacja</h2>
-      <p class="hint no-print">Możesz poprawić punkty – suma i ocena przeliczą się automatycznie, a zmiana zapisze się w historii.</p>
+      <p class="hint no-print">Kryteria oznaczone „nauczyciel” uzupełniasz sama. Każdy wynik AI też możesz zmienić – suma i ocena przeliczą się automatycznie.</p>
       <div class="table-scroll">
       <table class="criteria-table">
         <thead><tr><th>Kryterium</th><th>Punkty</th><th>Uzasadnienie</th></tr></thead>
         <tbody>
           ${a.criteria.map((c) => {
             const def = defs.get(c.id) || { name: c.id, max: 0 };
-            return `<tr>
+            const pts = c.points ?? '';
+            return `<tr class="${c.byTeacher ? 'is-teacher' : ''}">
               <td><strong>${escapeHTML(def.name)}</strong>
-                <div class="bar"><i style="width:${def.max ? (c.points / def.max) * 100 : 0}%"></i></div></td>
-              <td class="pts"><input type="number" min="0" max="${def.max}" step="1" value="${c.points}" data-crit="${escapeHTML(c.id)}" aria-label="Punkty: ${escapeHTML(def.name)}"> / ${def.max}</td>
-              <td>${escapeHTML(c.justification)}</td>
+                <div class="bar"><i style="width:${def.max && pts !== '' ? (pts / def.max) * 100 : 0}%"></i></div></td>
+              <td class="pts"><input type="number" min="0" max="${def.max}" step="1" value="${pts}" placeholder="?" data-crit="${escapeHTML(c.id)}" aria-label="Punkty: ${escapeHTML(def.name)}"> / ${def.max}</td>
+              <td>${c.byTeacher ? '<span class="pill pill--teacher">nauczyciel</span>' : escapeHTML(c.justification)}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -550,56 +601,38 @@ function renderResult(record) {
       </div>
     </div>
 
-    <div class="card">
-      <div class="cols">
-        <div><h2>Mocne strony</h2><ul>${a.strengths.map((s) => `<li>${escapeHTML(s)}</li>`).join('') || '<li>–</li>'}</ul></div>
-        <div><h2>Do poprawy</h2><ul>${a.improvements.map((s) => `<li>${escapeHTML(s)}</li>`).join('') || '<li>–</li>'}</ul></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Komentarz dla ucznia</h2>
-      <div class="feedback" id="feedback-text">${escapeHTML(a.feedback_for_student)}</div>
-    </div>
-
-    <div class="card">
-      <h2>Błędy (${a.errors.length})</h2>
-      <p>${errorCounts || 'Nie znaleziono błędów.'}</p>
-      <ul class="errors-list">
-        ${a.errors.map((e) => `<li>
-          <span class="pill pill--${escapeHTML(e.type)}">${escapeHTML(ERROR_LABELS[e.type] || e.type)}</span>
-          <q>${escapeHTML(e.quote)}</q> → <span class="fix">${escapeHTML(e.correction)}</span>
-          <div class="hint">${escapeHTML(e.explanation)}</div>
-        </li>`).join('')}
-      </ul>
-    </div>
-
     ${record.essayText ? `
     <div class="card">
-      <h2>Praca ucznia z zaznaczonymi błędami</h2>
-      <p class="hint">Najedź na zaznaczenie, aby zobaczyć poprawkę.</p>
-      <div class="essay">${highlightEssay(record.essayText, a.errors)}</div>
+      <h2>${a.transcription ? 'Odczytana praca ucznia' : 'Praca ucznia'}</h2>
+      ${a.transcription ? '<p class="hint">Porównaj z oryginałem – [nieczytelne] i [słowo?] oznaczają fragmenty, których AI nie odczytało pewnie.</p>' : ''}
+      <div class="essay">${paragraphs(record.essayText)}</div>
     </div>` : ''}
   `;
 
-  // Ręczna korekta punktów przez nauczyciela.
+  // Ręczna korekta / uzupełnianie punktów przez nauczyciela.
   $('#result').querySelectorAll('input[data-crit]').forEach((inp) =>
     inp.addEventListener('change', () => {
       const def = defs.get(inp.dataset.crit);
-      const value = Math.max(0, Math.min(def.max, Math.round(Number(inp.value) || 0)));
-      inp.value = value;
+      const value = inp.value === '' ? null : Math.max(0, Math.min(def.max, Math.round(Number(inp.value) || 0)));
+      inp.value = value ?? '';
       currentResult.assessment.criteria.find((c) => c.id === inp.dataset.crit).points = value;
-      inp.closest('tr').querySelector('.bar > i').style.width = `${def.max ? (value / def.max) * 100 : 0}%`;
+      inp.closest('tr').querySelector('.bar > i').style.width = `${def.max && value !== null ? (value / def.max) * 100 : 0}%`;
       const nt = totals(currentResult);
       $('#total-got').textContent = nt.got;
-      $('#total-grade').textContent = `${nt.percent}% · ${nt.grade} (${GRADE_NAMES[nt.grade]})`;
+      $('#total-grade').textContent = gradeLabel(nt);
       saveJSON(STORAGE_HISTORY, history);
     }));
 
+  // Zapis edytowanego komentarza.
+  $('#feedback-text').addEventListener('input', (e) => {
+    currentResult.assessment.feedback_for_student = e.target.innerText;
+    saveJSON(STORAGE_HISTORY, history);
+  });
+
   $('#copy-feedback').addEventListener('click', async (e) => {
     const nt = totals(currentResult);
-    const text = `Wynik: ${nt.got}/${nt.max} pkt (${nt.percent}%), ocena: ${nt.grade}\n\n${a.feedback_for_student}`;
-    try { await navigator.clipboard.writeText(text); e.target.textContent = 'Skopiowano ✓'; }
+    const head = nt.pending ? '' : `Wynik: ${nt.got}/${nt.max} pkt (${nt.percent}%), ocena: ${nt.grade}\n\n`;
+    try { await navigator.clipboard.writeText(head + currentResult.assessment.feedback_for_student); e.target.textContent = 'Skopiowano ✓'; }
     catch { e.target.textContent = 'Nie udało się skopiować'; }
   });
 
@@ -622,7 +655,7 @@ function renderHistory() {
           <td>${escapeHTML(r.className || '–')}</td>
           <td>${escapeHTML(r.topic.length > 60 ? r.topic.slice(0, 60) + '…' : r.topic)}</td>
           <td>${t.got}/${t.max}</td>
-          <td>${t.grade}</td>
+          <td>${t.grade ?? '–'}</td>
           <td><button type="button" class="btn btn--ghost btn--small" data-open="${r.id}">Otwórz</button>
               <button type="button" class="btn btn--ghost btn--small danger" data-del="${r.id}" aria-label="Usuń">✕</button></td>
         </tr>`;
@@ -652,11 +685,13 @@ $('#clear-history').addEventListener('click', () => {
 $('#export-csv').addEventListener('click', () => {
   if (!history.length) return;
   const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = [['Data', 'Uczeń', 'Klasa', 'Temat', 'Kryteria', 'Punkty', 'Maks.', 'Procent', 'Ocena', 'Liczba błędów', 'Komentarz']];
+  const rows = [['Data', 'Uczeń', 'Klasa', 'Temat', 'Kryteria', 'Punkty', 'Maks.', 'Procent', 'Ocena', 'Przykłady funkcjonalne', 'Konteksty', 'Komentarz']];
   for (const r of history) {
     const t = totals(r);
     rows.push([new Date(r.date).toLocaleString('pl-PL'), r.student, r.className, r.topic, r.presetName,
-      t.got, t.max, t.percent, t.grade, r.assessment.errors.length, r.assessment.feedback_for_student]);
+      t.got, t.max, t.percent, t.grade ?? 'do uzupełnienia',
+      `${(r.assessment.arguments || []).filter((x) => x.functionality === 'funkcjonalny').length}/${(r.assessment.arguments || []).length}`,
+      (r.assessment.contexts || []).length, r.assessment.feedback_for_student]);
   }
   // BOM (﻿) – żeby Excel poprawnie pokazał polskie znaki; średnik – separator dla polskiego Excela.
   const csv = '﻿' + rows.map((row) => row.map(cell).join(';')).join('\r\n');
@@ -700,13 +735,15 @@ function renderCriteriaEditor() {
       <input type="text" value="${escapeHTML(c.name)}" data-i="${i}" data-k="name" aria-label="Nazwa kryterium">
       <input type="number" min="1" value="${c.max}" data-i="${i}" data-k="max" aria-label="Maks. punktów">
       <button type="button" class="btn btn--ghost btn--small danger" data-del-crit="${i}" aria-label="Usuń kryterium">✕</button>
+      <label class="check"><input type="checkbox" data-i="${i}" data-k="ai" ${c.ai !== false ? 'checked' : ''}> ocenia AI (odznacz, jeśli to kryterium sprawdzasz sama)</label>
       <textarea rows="2" data-i="${i}" data-k="desc" aria-label="Opis kryterium">${escapeHTML(c.desc)}</textarea>
     </div>`).join('');
   $('#criteria-total').textContent = editingPreset.criteria.reduce((s, c) => s + Number(c.max), 0);
 
-  $('#criteria-editor').querySelectorAll('[data-k]').forEach((el) => el.addEventListener('input', () => {
+  $('#criteria-editor').querySelectorAll('[data-k]').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
     const c = editingPreset.criteria[Number(el.dataset.i)];
-    c[el.dataset.k] = el.dataset.k === 'max' ? Math.max(1, parseInt(el.value, 10) || 1) : el.value;
+    const k = el.dataset.k;
+    c[k] = k === 'ai' ? el.checked : k === 'max' ? Math.max(1, parseInt(el.value, 10) || 1) : el.value;
     $('#criteria-total').textContent = editingPreset.criteria.reduce((s, x) => s + Number(x.max), 0);
   }));
   $('#criteria-editor').querySelectorAll('[data-del-crit]').forEach((b) => b.addEventListener('click', () => {
@@ -719,7 +756,7 @@ function renderCriteriaEditor() {
 $('#criteria-edit-preset').addEventListener('change', (e) => { editingPresetId = e.target.value; loadPresetEditor(); });
 
 $('#add-criterion').addEventListener('click', () => {
-  editingPreset.criteria.push({ id: `k${Date.now().toString(36)}`, name: 'Nowe kryterium', max: 2, desc: '' });
+  editingPreset.criteria.push({ id: `k${Date.now().toString(36)}`, name: 'Nowe kryterium', max: 2, desc: '', ai: true });
   renderCriteriaEditor();
 });
 
@@ -728,7 +765,7 @@ $('#add-preset').addEventListener('click', () => {
   settings.presets[id] = {
     name: 'Mój zestaw',
     rules: '',
-    criteria: [{ id: 'k1', name: 'Nowe kryterium', max: 5, desc: '' }],
+    criteria: [{ id: 'k1', name: 'Nowe kryterium', max: 5, desc: '', ai: true }],
   };
   editingPresetId = id;
   saveJSON(STORAGE_SETTINGS, settings);
