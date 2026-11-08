@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sprawdzacz rozprawek</title>
+  <meta name="description" content="Aplikacja dla nauczycieli języka polskiego: sprawdza rozprawki uczniów według kryteriów (np. egzamin ósmoklasisty), wskazuje błędy i przygotowuje komentarz dla ucznia.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar__inner">
+      <h1 class="logo">Sprawdzacz rozprawek</h1>
+      <nav class="tabs" aria-label="Sekcje aplikacji">
+        <button type="button" class="tab is-active" data-view="check">Sprawdź</button>
+        <button type="button" class="tab" data-view="history">Historia</button>
+        <button type="button" class="tab" data-view="settings">Ustawienia</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ===================== SPRAWDZANIE ===================== -->
+    <section id="view-check" class="view is-active" aria-labelledby="h-check">
+      <h2 id="h-check" class="visually-hidden">Sprawdź rozprawkę</h2>
+
+      <div id="no-key-banner" class="banner" hidden>
+        Najpierw wklej klucz API w zakładce <button type="button" class="link" data-goto="settings">Ustawienia</button>.
+      </div>
+
+      <form id="essay-form" class="card" novalidate>
+        <div class="grid-2">
+          <label class="field">
+            <span>Uczeń (inicjały lub numer z dziennika)</span>
+            <input type="text" id="student" placeholder="np. A.K. lub nr 12" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Klasa</span>
+            <input type="text" id="class-name" placeholder="np. 8b" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Temat rozprawki *</span>
+          <textarea id="topic" rows="2" required placeholder="np. Czy warto poświęcić się dla innych? Rozważ problem, odwołując się do lektury obowiązkowej i innego tekstu kultury."></textarea>
+        </label>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>Kryteria oceniania</span>
+            <select id="criteria-preset"></select>
+          </label>
+          <label class="field">
+            <span>Wymagane lektury / teksty (opcjonalnie)</span>
+            <input type="text" id="readings" placeholder="np. „Mały Książę”, „Kamienie na szaniec”">
+          </label>
+        </div>
+
+        <fieldset class="field">
+          <legend>Tekst ucznia</legend>
+          <div class="segmented" role="radiogroup" aria-label="Sposób dodania pracy">
+            <label><input type="radio" name="input-mode" value="text" checked> Wklej tekst</label>
+            <label><input type="radio" name="input-mode" value="file"> Zdjęcie / skan / PDF</label>
+          </div>
+
+          <div id="mode-text">
+            <textarea id="essay-text" rows="14" placeholder="Wklej tutaj treść rozprawki…"></textarea>
+            <p class="hint">Liczba słów: <strong id="word-count">0</strong></p>
+          </div>
+
+          <div id="mode-file" hidden>
+            <label class="dropzone" id="dropzone">
+              <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain" multiple>
+              <span><strong>Kliknij lub upuść pliki</strong><br>Zdjęcia kolejnych stron (JPG/PNG), PDF lub TXT. Pismo odręczne też zadziała, jeśli jest czytelne.</span>
+            </label>
+            <ul id="file-list" class="file-list"></ul>
+          </div>
+        </fieldset>
+
+        <label class="field">
+          <span>Dodatkowe wskazówki dla sprawdzającego (opcjonalnie)</span>
+          <textarea id="extra" rows="2" placeholder="np. uczeń z dysleksją – nie obniżaj punktów za ortografię; zwróć uwagę na akapity"></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" id="submit-btn">Sprawdź rozprawkę</button>
+          <button type="reset" class="btn btn--ghost">Wyczyść</button>
+        </div>
+        <p id="form-error" class="error" role="alert" hidden></p>
+      </form>
+
+      <div id="loading" class="card loading" hidden aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Sprawdzam pracę… zwykle trwa to 30–90 sekund.</p>
+      </div>
+
+      <div id="result" aria-live="polite"></div>
+    </section>
+
+    <!-- ===================== HISTORIA ===================== -->
+    <section id="view-history" class="view" aria-labelledby="h-history">
+      <div class="card">
+        <div class="row-between">
+          <h2 id="h-history">Historia sprawdzonych prac</h2>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" id="export-csv">Eksport CSV</button>
+            <button type="button" class="btn btn--ghost danger" id="clear-history">Usuń historię</button>
+          </div>
+        </div>
+        <p class="hint">Historia jest zapisana tylko w tej przeglądarce, na tym komputerze.</p>
+        <div id="history-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== USTAWIENIA ===================== -->
+    <section id="view-settings" class="view" aria-labelledby="h-settings">
+      <div class="card">
+        <h2 id="h-settings">Ustawienia</h2>
+
+        <label class="field">
+          <span>Klucz API Anthropic</span>
+          <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off">
+        </label>
+        <p class="hint">Klucz założysz na <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> → API Keys (wymaga doładowania konta). Klucz zostaje tylko w tej przeglądarce.</p>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>Model</span>
+            <select id="model">
+              <option value="claude-opus-5-5">Claude Opus 5.5 – najdokładniejszy (zalecany)</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5 – szybszy i tańszy</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Staranność analizy</span>
+            <select id="effort">
+              <option value="medium">Standardowa</option>
+              <option value="high" selected>Wysoka (zalecana)</option>
+              <option value="xhigh">Bardzo wysoka (wolniej, drożej)</option>
+            </select>
+          </label>
+        </div>
+
+        <h3>Progi ocen (% punktów)</h3>
+        <div class="grades" id="grade-thresholds"></div>
+
+        <h3>Kryteria oceniania</h3>
+        <p class="hint">Możesz zmieniać nazwy, punkty i opisy. Zmiany w zestawie wbudowanym zapisują się jako Twoja wersja.</p>
+        <div class="grid-2">
+          <label class="field">
+            <span>Zestaw do edycji</span>
+            <select id="criteria-edit-preset"></select>
+          </label>
+          <div class="actions actions--end">
+            <button type="button" class="btn btn--ghost" id="add-preset">+ Nowy zestaw</button>
+            <button type="button" class="btn btn--ghost" id="reset-preset">Przywróć domyślny</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Nazwa zestawu</span>
+          <input type="text" id="preset-name">
+        </label>
+        <label class="field">
+          <span>Zasady ogólne zestawu (np. minimalna liczba słów, warunki zera punktów)</span>
+          <textarea id="preset-rules" rows="4"></textarea>
+        </label>
+        <div id="criteria-editor"></div>
+        <div class="actions">
+          <button type="button" class="btn btn--ghost" id="add-criterion">+ Dodaj kryterium</button>
+          <span class="hint">Suma punktów: <strong id="criteria-total">0</strong></span>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn--primary" id="save-settings">Zapisz ustawienia</button>
+          <span id="settings-saved" class="ok" hidden>Zapisano ✓</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Wynik AI to propozycja – ostateczną ocenę wystawia nauczyciel. Nie wpisuj pełnych imion i nazwisk uczniów.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
