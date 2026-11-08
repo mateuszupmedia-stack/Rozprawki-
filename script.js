@@ -191,15 +191,50 @@ async function prepareImage(file) {
   return { data: dataUrl.split(',')[1], mediaType: 'image/jpeg', preview: dataUrl };
 }
 
+/** Obraca przygotowane zdjęcie o 90° w prawo (gdy telefon zapisał je bokiem). */
+async function rotateImage(file) {
+  const img = new Image();
+  img.src = file.preview;
+  await img.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = img.height;
+  canvas.height = img.width;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(img, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  file.preview = dataUrl;
+  file.data = dataUrl.split(',')[1];
+}
+
 function renderFileList() {
+  const last = attachedFiles.length - 1;
   $('#file-list').innerHTML = attachedFiles.map((f, i) => `
-    <li>
-      ${f.kind === 'image' ? `<img src="${f.preview}" alt="Strona ${i + 1}: ${escapeHTML(f.name)}">` : '📄'}
-      <span>${i + 1}. ${escapeHTML(f.name)}</span>
-      <button type="button" class="btn btn--ghost btn--small" data-remove="${i}" aria-label="Usuń ${escapeHTML(f.name)}">✕</button>
+    <li class="page">
+      ${f.kind === 'image'
+        ? `<a href="${f.preview}" target="_blank" rel="noopener" title="Otwórz w pełnym rozmiarze"><img src="${f.preview}" alt="Strona ${i + 1}: ${escapeHTML(f.name)}"></a>`
+        : '<span class="page__pdf">PDF</span>'}
+      <span class="page__name">Strona ${i + 1}</span>
+      <span class="page__tools">
+        <button type="button" class="btn btn--ghost btn--small" data-move="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Przesuń wcześniej">◀</button>
+        ${f.kind === 'image' ? `<button type="button" class="btn btn--ghost btn--small" data-rotate="${i}" aria-label="Obróć o 90°">↻</button>` : ''}
+        <button type="button" class="btn btn--ghost btn--small" data-move="${i}" data-dir="1" ${i === last ? 'disabled' : ''} aria-label="Przesuń później">▶</button>
+        <button type="button" class="btn btn--ghost btn--small danger" data-remove="${i}" aria-label="Usuń stronę ${i + 1}">✕</button>
+      </span>
     </li>`).join('');
-  $('#file-list').querySelectorAll('[data-remove]').forEach((b) =>
+  const list = $('#file-list');
+  list.querySelectorAll('[data-remove]').forEach((b) =>
     b.addEventListener('click', () => { attachedFiles.splice(Number(b.dataset.remove), 1); renderFileList(); }));
+  list.querySelectorAll('[data-move]').forEach((b) => b.addEventListener('click', () => {
+    const i = Number(b.dataset.move), j = i + Number(b.dataset.dir);
+    [attachedFiles[i], attachedFiles[j]] = [attachedFiles[j], attachedFiles[i]];
+    renderFileList();
+  }));
+  list.querySelectorAll('[data-rotate]').forEach((b) => b.addEventListener('click', async () => {
+    await rotateImage(attachedFiles[Number(b.dataset.rotate)]);
+    renderFileList();
+  }));
 }
 
 function showFormError(msg) {
@@ -256,7 +291,11 @@ $('#essay-form').addEventListener('submit', async (e) => {
       student: input.student,
       className: input.className,
       topic: input.topic,
+      readings: input.readings,
+      extra: input.extra,
+      presetId: input.presetId,
       presetName: preset.name,
+      handwritten: !input.text,
       essayText: input.text || assessment.transcription || '',
       wordCount: input.text ? countWords(input.text) : assessment.word_count,
       model: assessment._model,
@@ -264,10 +303,7 @@ $('#essay-form').addEventListener('submit', async (e) => {
       criteriaDef: preset.criteria,
     };
     history.unshift(record);
-    if (!saveJSON(STORAGE_HISTORY, history)) {
-      history = history.slice(0, 50); // pamięć pełna – zostawiamy ostatnie 50
-      saveJSON(STORAGE_HISTORY, history);
-    }
+    saveHistory();
     renderResult(record);
   } catch (err) {
     showFormError(err.message || String(err));
@@ -275,6 +311,51 @@ $('#essay-form').addEventListener('submit', async (e) => {
     setLoading(false);
   }
 });
+
+function saveHistory() {
+  if (!saveJSON(STORAGE_HISTORY, history)) {
+    history = history.slice(0, 50); // pamięć pełna – zostawiamy ostatnie 50
+    saveJSON(STORAGE_HISTORY, history);
+  }
+}
+
+/**
+ * Ponowna ocena na podstawie transkrypcji poprawionej przez nauczycielkę
+ * (bez zdjęć – szybciej i taniej). Punkty wpisane przez nauczycielkę zostają.
+ */
+async function reassessFromText(record, correctedText, button, errorEl) {
+  const presets = allPresets();
+  const presetId = record.presetId && presets[record.presetId]
+    ? record.presetId
+    : Object.keys(presets).find((id) => presets[id].name === record.presetName) || 'e8';
+  const preset = presets[presetId];
+  const input = {
+    student: record.student, className: record.className, topic: record.topic,
+    readings: record.readings || '', extra: record.extra || '', presetId,
+    text: correctedText, files: [], fromHandwriting: true,
+  };
+  button.disabled = true;
+  button.textContent = 'Oceniam ponownie…';
+  errorEl.hidden = true;
+  try {
+    const assessment = await assessEssay(input, preset);
+    // Zachowaj punkty nauczycielki z poprzedniej wersji.
+    const teacherPoints = new Map(record.assessment.criteria.filter((c) => c.byTeacher).map((c) => [c.id, c.points]));
+    assessment.criteria.forEach((c) => { if (c.byTeacher && teacherPoints.has(c.id)) c.points = teacherPoints.get(c.id); });
+    assessment.transcription = correctedText;
+    Object.assign(record, {
+      essayText: correctedText, wordCount: countWords(correctedText), assessment,
+      criteriaDef: preset.criteria, presetId, presetName: preset.name, model: assessment._model,
+    });
+    saveHistory();
+    renderResult(record);
+  } catch (err) {
+    errorEl.textContent = err.message || String(err);
+    errorEl.hidden = false;
+    button.disabled = false;
+    button.textContent = 'Oceń ponownie na podstawie poprawionego tekstu';
+  }
+}
 
 function setLoading(on) {
   $('#loading').hidden = !on;
@@ -359,7 +440,14 @@ function buildSystemPrompt() {
   return [
     'Jesteś doświadczonym egzaminatorem i nauczycielem języka polskiego. Pomagasz nauczycielce sprawdzać rozprawki uczniów polskiej szkoły. Ona sama sprawdza poprawność językową, ortografię, interpunkcję i styl – Ty zajmujesz się treścią.',
     'Twoje zadania:',
-    '1. Odczytanie pracy. Jeśli praca jest na zdjęciach lub w PDF, przepisz ją dokładnie, strona po stronie, zachowując oryginalną pisownię i interpunkcję ucznia (nie poprawiaj błędów). Fragmenty, których nie da się odczytać, zapisz jako [nieczytelne] lub [słowo?], gdy nie masz pewności, i wspomnij o nich w "teacher_notes". Pomiń skreślenia.',
+    '1. Odczytanie pracy. Prace są pisane ODRĘCZNIE przez uczniów (różne charaktery pisma, czasem niewyraźne). Jeśli praca jest na zdjęciach lub w PDF, przepisz ją dokładnie, strona po stronie, w podanej kolejności:',
+    '   - zachowaj oryginalną pisownię i interpunkcję ucznia – nie poprawiaj błędów, nie dopisuj brakujących słów, nie wygładzaj stylu;',
+    '   - przy niewyraźnych słowach korzystaj z kontekstu zdania, ale jeśli nie masz pewności, zapisz najbardziej prawdopodobną wersję ze znakiem zapytania w nawiasie kwadratowym, np. [poświęcenie?]; fragmenty zupełnie nieczytelne zapisz jako [nieczytelne];',
+    '   - pomiń wyrazy skreślone przez ucznia; wstawki dopisane nad linią lub na marginesie ze strzałką wstaw w odpowiednie miejsce;',
+    '   - zachowaj podział na akapity (nowy akapit = wcięcie lub nowa linia po krótszej linii); oddziel akapity pustą linią;',
+    '   - pomiń nagłówki kartki, numery stron, uwagi nauczyciela pisane innym kolorem;',
+    '   - w "teacher_notes" podaj, które fragmenty były niepewne lub nieczytelne i czy strony wyglądają na kompletne (np. urwane zdanie na końcu strony).',
+    '   Niepewny odczyt nie może obniżać oceny merytorycznej – oceniaj to, co uczeń najprawdopodobniej napisał.',
     '2. Analiza argumentów i przykładów. Dla każdego argumentu oceń przykład: "funkcjonalny" – uczeń przywołuje konkretną sytuację/postać, interpretuje ją i jasno wiąże z tezą; "częściowo funkcjonalny" – przykład trafny, ale głównie streszczony albo słabo powiązany z tezą; "niefunkcjonalny" – przykład niezwiązany z tezą, ogólnikowy, błędny rzeczowo lub sama wzmianka. Sprawdź poprawność rzeczową odwołań do lektur (postacie, wydarzenia, autorzy).',
     '3. Konteksty. Wskaż konteksty (np. historyczny, biograficzny, filozoficzny, kulturowy) i oceń, czy są funkcjonalne, czyli czy pogłębiają argumentację, a nie są tylko ozdobnikiem.',
     '4. Punktacja wyłącznie podanych kryteriów merytorycznych – liczba całkowita od 0 do maksimum, z uzasadnieniem odwołującym się do treści pracy.',
@@ -380,7 +468,7 @@ function buildUserText(input, preset) {
     `ZESTAW KRYTERIÓW: ${preset.name}\nZasady ogólne: ${preset.rules || 'brak'}\nKryteria do oceny przez Ciebie:\n${criteriaText}`,
     input.extra ? `DODATKOWE WSKAZÓWKI NAUCZYCIELKI:\n${input.extra}` : '',
     input.text
-      ? `PRACA UCZNIA (liczba słów policzona automatycznie: ${countWords(input.text)}):\n"""\n${input.text}\n"""`
+      ? `PRACA UCZNIA${input.fromHandwriting ? ' (transkrypcja pracy odręcznej, sprawdzona i poprawiona przez nauczycielkę – zwróć pusty "transcription")' : ''} (liczba słów policzona automatycznie: ${countWords(input.text)}):\n"""\n${input.text}\n"""`
       : `PRACA UCZNIA znajduje się w załączonych plikach (${input.files.length} – kolejne strony w podanej kolejności). Najpierw ją dokładnie przepisz, potem oceń.`,
     'Zwróć wynik w wymaganym formacie JSON. Uwzględnij każde z podanych kryteriów dokładnie raz.',
   ].filter(Boolean).join('\n\n');
@@ -507,6 +595,9 @@ function gradeLabel(t) {
 
 const funcPill = (value) => `<span class="pill pill--${FUNC_CLASS[value] || 'mid'}">${escapeHTML(value)}</span>`;
 
+/** Wyróżnia niepewne fragmenty odczytu: [nieczytelne], [słowo?]. Działa na już zabezpieczonym HTML. */
+const markUncertain = (html) => html.replace(/\[[^\]\n]{1,60}\]/g, (m) => `<mark class="uncertain">${m}</mark>`);
+
 /** Tekst z akapitami (pusta linia = nowy akapit). */
 const paragraphs = (text) => text.split(/\n\s*\n/).map((p) => `<p>${escapeHTML(p.trim())}</p>`).join('');
 
@@ -601,10 +692,23 @@ function renderResult(record) {
       </div>
     </div>
 
-    ${record.essayText ? `
+    ${record.essayText && (record.handwritten || a.transcription) ? `
+    <div class="card" id="transcription-card">
+      <h2>Odczytana praca ucznia</h2>
+      <p class="hint">Porównaj z kartką. <mark class="uncertain">[słowo?]</mark> – odczyt niepewny, <mark class="uncertain">[nieczytelne]</mark> – nie udało się odczytać.
+        Jeśli AI źle odczytało ważny fragment, popraw tekst poniżej i oceń pracę ponownie (punkty, które wpisałaś, zostaną).</p>
+      <div class="essay no-print-edit" id="essay-view">${markUncertain(paragraphs(record.essayText))}</div>
+      <div class="no-print">
+        <textarea id="essay-edit" rows="16" hidden aria-label="Poprawiona transkrypcja">${escapeHTML(record.essayText)}</textarea>
+        <div class="actions">
+          <button type="button" class="btn btn--ghost" id="edit-transcription">Popraw odczyt</button>
+          <button type="button" class="btn btn--primary" id="reassess" hidden>Oceń ponownie na podstawie poprawionego tekstu</button>
+        </div>
+        <p class="error" id="reassess-error" role="alert" hidden></p>
+      </div>
+    </div>` : record.essayText ? `
     <div class="card">
-      <h2>${a.transcription ? 'Odczytana praca ucznia' : 'Praca ucznia'}</h2>
-      ${a.transcription ? '<p class="hint">Porównaj z oryginałem – [nieczytelne] i [słowo?] oznaczają fragmenty, których AI nie odczytało pewnie.</p>' : ''}
+      <h2>Praca ucznia</h2>
       <div class="essay">${paragraphs(record.essayText)}</div>
     </div>` : ''}
   `;
@@ -622,6 +726,24 @@ function renderResult(record) {
       $('#total-grade').textContent = gradeLabel(nt);
       saveJSON(STORAGE_HISTORY, history);
     }));
+
+  // Poprawianie transkrypcji i ponowna ocena.
+  if ($('#edit-transcription')) {
+    $('#edit-transcription').addEventListener('click', (e) => {
+      const editing = $('#essay-edit').hidden;
+      $('#essay-edit').hidden = !editing;
+      $('#essay-view').hidden = editing;
+      $('#reassess').hidden = !editing;
+      e.target.textContent = editing ? 'Anuluj poprawki' : 'Popraw odczyt';
+      if (editing) $('#essay-edit').focus();
+    });
+    $('#reassess').addEventListener('click', (e) => {
+      const text = $('#essay-edit').value.trim();
+      if (countWords(text) < 20) { $('#reassess-error').textContent = 'Tekst jest za krótki.'; $('#reassess-error').hidden = false; return; }
+      if (!settings.apiKey) { $('#reassess-error').textContent = 'Brak klucza API – uzupełnij go w Ustawieniach.'; $('#reassess-error').hidden = false; return; }
+      reassessFromText(record, text, e.target, $('#reassess-error'));
+    });
+  }
 
   // Zapis edytowanego komentarza.
   $('#feedback-text').addEventListener('input', (e) => {

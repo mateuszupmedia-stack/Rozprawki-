@@ -21,6 +21,13 @@ Historia prac zapisuje się w przeglądarce i można ją wyeksportować do pliku
 4. W zakładce **Sprawdź** wpisz temat, dodaj zdjęcia kolejnych stron (w kolejności) i kliknij **Sprawdź rozprawkę**. Na telefonie można od razu zrobić zdjęcie.
 5. Porównaj transkrypcję z oryginałem, uzupełnij punkty za kryteria językowe i w razie potrzeby popraw komentarz.
 
+## Prace pisane odręcznie
+
+- Fotografuj każdą stronę osobno, z góry, przy dziennym świetle, bez cienia telefonu i bez lampy błyskowej.
+- Po dodaniu zdjęć sprawdź miniatury: **↻** obraca zdjęcie zapisane bokiem, **◀ ▶** zmieniają kolejność stron.
+- W transkrypcji `[słowo?]` oznacza niepewny odczyt, a `[nieczytelne]` fragment, którego nie udało się odczytać. Oba są wyróżnione kolorem.
+- Jeśli AI źle odczytało ważny fragment, kliknij **Popraw odczyt**, popraw tekst i wybierz **Oceń ponownie**. Druga ocena idzie już bez zdjęć, więc jest szybsza i tańsza, a wpisane przez Ciebie punkty zostają.
+
 ## Struktura
 
 | Plik | Co zawiera |
